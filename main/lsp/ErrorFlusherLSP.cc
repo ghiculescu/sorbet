@@ -5,7 +5,7 @@
 using namespace std;
 namespace sorbet::realmain::lsp {
 ErrorFlusherLSP::ErrorFlusherLSP(const u4 epoch, shared_ptr<ErrorReporter> errorReporter)
-    : errorReporter(errorReporter){};
+    : epoch(epoch), errorReporter(errorReporter){};
 
 void ErrorFlusherLSP::flushErrors(spdlog::logger &logger, vector<unique_ptr<core::ErrorQueueMessage>> errors,
                                   const core::GlobalState &gs) {
@@ -22,10 +22,6 @@ void ErrorFlusherLSP::flushErrors(spdlog::logger &logger, vector<unique_ptr<core
             auto file = error->whatFile;
             filesTypechecked.emplace_back(file);
             errorsAccumulated[file].emplace_back(std::move(error->error));
-
-            for (auto &autocorrect : error->error->autocorrects) {
-                autocorrects.emplace_back(move(autocorrect));
-            }
         }
     }
 
@@ -41,6 +37,7 @@ void ErrorFlusherLSP::flushErrorCount(spdlog::logger &logger, int count) {}
 
 void ErrorFlusherLSP::flushAutocorrects(const core::GlobalState &gs, FileSystem &fs) {
     UnorderedMap<core::FileRef, string> sources;
+
     for (auto &autocorrect : autocorrects) {
         for (auto &edit : autocorrect.edits) {
             auto file = edit.loc.file();
